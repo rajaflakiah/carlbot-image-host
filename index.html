@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101522">
+  <title>Image Manager — Carl-bot</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #131a2b;
+      --panel-2: #192238;
+      --border: #29344c;
+      --text: #eef2ff;
+      --muted: #9aa8c3;
+      --accent: #8b9cff;
+      --accent-2: #b8c2ff;
+      --danger: #ff7b86;
+      --success: #74e0b1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: radial-gradient(circle at top right, #1b2750 0, transparent 36%), var(--bg);
+      color: var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    .wrap { width: min(1100px, calc(100% - 32px)); margin: 34px auto 60px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; }
+    .brand { display:flex; align-items:center; gap:13px; }
+    .logo { width:46px; height:46px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(135deg,#7d8cff,#b18cff); color:#11172b; font-size:22px; font-weight:900; }
+    h1 { font-size:clamp(24px,4vw,34px); line-height:1.15; margin:0; letter-spacing:-.7px; }
+    .subtitle { color:var(--muted); margin:5px 0 0; }
+    .tag { border:1px solid var(--border); border-radius:999px; color:var(--muted); padding:7px 11px; font-size:12px; white-space:nowrap; }
+    .panel { background:rgba(19,26,43,.94); border:1px solid var(--border); border-radius:18px; padding:20px; margin-bottom:18px; box-shadow:0 12px 32px #0002; }
+    .panel-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+    h2 { margin:0; font-size:18px; }
+    .hint { color:var(--muted); font-size:13px; margin:6px 0 0; }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    input[type="text"], input[type="password"] {
+      width:100%; background:#0d1424; color:var(--text); border:1px solid var(--border);
+      border-radius:10px; padding:11px 12px; font:inherit; outline:none;
+    }
+    input:focus { border-color:var(--accent); box-shadow:0 0 0 3px #8b9cff22; }
+    .token-row { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; margin-top:13px; }
+    button, .file-label {
+      border:1px solid var(--border); background:var(--panel-2); color:var(--text); padding:10px 13px;
+      border-radius:10px; font:600 13px system-ui,sans-serif; cursor:pointer; transition:.15s ease;
+    }
+    button:hover, .file-label:hover { border-color:var(--accent); transform:translateY(-1px); }
+    button.primary { background:var(--accent); color:#10162b; border-color:transparent; }
+    button.danger { color:var(--danger); }
+    button:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+    .actions { display:flex; flex-wrap:wrap; gap:9px; align-items:center; }
+    .upload-box { border:1px dashed #4b5a7b; border-radius:14px; padding:18px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:#0e1526; }
+    .upload-copy strong { display:block; }
+    .upload-copy span { color:var(--muted); font-size:13px; }
+    input[type=file] { display:none; }
+    .status { margin-top:12px; min-height:22px; color:var(--muted); font-size:13px; overflow-wrap:anywhere; }
+    .status.success { color:var(--success); }
+    .status.error { color:var(--danger); }
+    .gallery { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .card { border:1px solid var(--border); background:#101729; border-radius:14px; overflow:hidden; min-width:0; }
+    .preview { height:175px; display:grid; place-items:center; background:linear-gradient(135deg,#111a2e,#202b45); padding:12px; }
+    .preview img { max-width:100%; max-height:100%; object-fit:contain; }
+    .card-body { padding:13px; }
+    .filename { font-size:13px; font-weight:700; overflow-wrap:anywhere; margin-bottom:5px; }
+    .url { display:block; color:var(--muted); font-size:11px; overflow-wrap:anywhere; margin-bottom:12px; }
+    .card-actions { display:flex; gap:7px; }
+    .card-actions button { flex:1; padding:8px 9px; }
+    .empty { border:1px dashed var(--border); color:var(--muted); text-align:center; padding:30px 16px; border-radius:14px; grid-column:1/-1; }
+    .notice { color:var(--muted); font-size:12px; margin:12px 0 0; }
+    .notice strong { color:var(--text); }
+    footer { color:var(--muted); font-size:12px; text-align:center; margin-top:22px; }
+    @media (max-width:800px) { .grid,.gallery { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:560px) {
+      .wrap { width:calc(100% - 22px); margin-top:20px; }
+      header { align-items:flex-start; }
+      .tag { display:none; }
+      .panel { padding:15px; }
+      .grid,.gallery { grid-template-columns:1fr; }
+      .preview { height:190px; }
+      .token-row { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">IMG</div>
+        <div>
+          <h1>Image Manager</h1>
+          <p class="subtitle">Kelola direct image URL untuk Carl-bot</p>
+        </div>
+      </div>
+      <div class="tag">GitHub Pages + GitHub API</div>
+    </header>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Pengaturan repository</h2>
+          <p class="hint">Isi sesuai repository GitHub yang menyimpan website dan folder images.</p>
+        </div>
+      </div>
+      <div class="grid">
+        <div>
+          <label for="owner">GitHub username / owner</label>
+          <input id="owner" type="text" placeholder="contoh: fajarhaikal" autocomplete="off">
+        </div>
+        <div>
+          <label for="repo">Nama repository</label>
+          <input id="repo" type="text" placeholder="contoh: carlbot-image-host" autocomplete="off">
+        </div>
+        <div>
+          <label for="branch">Branch</label>
+          <input id="branch" type="text" value="main" autocomplete="off">
+        </div>
+      </div>
+      <div class="token-row">
+        <div>
+          <label for="token">Fine-grained Personal Access Token</label>
+          <input id="token" type="password" placeholder="Tempel token GitHub di sini" autocomplete="off">
+        </div>
+        <div class="actions">
+          <button id="toggleToken" type="button">Tampilkan</button>
+          <button id="loadBtn" class="primary" type="button">Muat gambar</button>
+        </div>
+      </div>
+      <p class="notice"><strong>Keamanan:</strong> token hanya disimpan sementara di memori halaman ini dan tidak dimasukkan ke kode. Jangan bagikan token kepada siapa pun. Gunakan token yang dibatasi hanya ke repository ini dengan izin Contents: Read and write.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Upload gambar</h2>
+          <p class="hint">PNG, JPG, JPEG, GIF, atau WebP. Disarankan di bawah 5 MB per gambar.</p>
+        </div>
+      </div>
+      <div class="upload-box">
+        <div class="upload-copy">
+          <strong>Pilih gambar dari perangkat</strong>
+          <span>Nama file akan dipakai sebagai nama aset di folder /images.</span>
+        </div>
+        <div class="actions">
+          <label class="file-label" for="fileInput">Pilih gambar</label>
+          <input id="fileInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+          <button id="uploadBtn" class="primary" type="button" disabled>Upload ke GitHub</button>
+        </div>
+      </div>
+      <div id="selectedFile" class="hint">Belum ada file dipilih.</div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Galeri gambar</h2>
+          <p class="hint">Salin URL untuk dipasang pada Carl-bot. Penghapusan menghapus file dari repository.</p>
+        </div>
+        <button id="refreshBtn" type="button">↻ Refresh</button>
+      </div>
+      <div id="gallery" class="gallery">
+        <div class="empty">Masukkan owner, repository, dan token, lalu klik “Muat gambar”.</div>
+      </div>
+    </section>
+    <footer>Image Manager pribadi · File publik dapat dilihat siapa saja yang memiliki URL.</footer>
+  </main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let selectedFile = null;
+  let currentFiles = [];
+
+  const setStatus = (message, type = '') => {
+    $('status').textContent = message;
+    $('status').className = 'status' + (type ? ' ' + type : '');
+  };
+
+  function config() {
+    const owner = $('owner').value.trim();
+    const repo = $('repo').value.trim();
+    const branch = $('branch').value.trim() || 'main';
+    const token = $('token').value.trim();
+    if (!owner || !repo || !branch) throw new Error('Isi GitHub owner, repository, dan branch terlebih dahulu.');
+    return { owner, repo, branch, token };
+  }
+
+  function apiUrl(path) {
+    const c = config();
+    return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+  }
+
+  function imageUrl(name) {
+    const c = config();
+    return `https://${c.owner}.github.io/${c.repo}/images/${encodeURIComponent(name).replace(/%2F/gi, '/')}`;
+  }
+
+  async function githubRequest(url, options = {}) {
+    const c = config();
+    const headers = {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.headers || {})
+    };
+    if (c.token) headers.Authorization = `Bearer ${c.token}`;
+    const response = await fetch(url, { ...options, headers });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = data.message || `GitHub API error (${response.status})`;
+      throw new Error(message + (response.status === 401 ? ' — token tidak valid atau kedaluwarsa.' : response.status === 404 ? ' — repository/folder tidak ditemukan atau token tidak memiliki akses.' : ''));
+    }
+    return data;
+  }
+
+  async function loadImages() {
+    try {
+      const c = config();
+      setStatus('Mengambil daftar gambar dari GitHub…');
+      $('loadBtn').disabled = true;
+      const files = await githubRequest(apiUrl('images') + `?ref=${encodeURIComponent(c.branch)}`);
+      currentFiles = Array.isArray(files) ? files.filter(f => f.type === 'file' && /\.(png|jpe?g|gif|webp)$/i.test(f.name)) : [];
+      renderGallery();
+      setStatus(`Berhasil memuat ${currentFiles.length} gambar.`, 'success');
+    } catch (error) {
+      $('gallery').innerHTML = '<div class="empty">Gambar belum dapat dimuat. Periksa konfigurasi dan folder images.</div>';
+      setStatus(error.message, 'error');
+    } finally {
+      $('loadBtn').disabled = false;
+    }
+  }
+
+  function renderGallery() {
+    const gallery = $('gallery');
+    if (!currentFiles.length) {
+      gallery.innerHTML = '<div class="empty">Belum ada gambar di folder /images.</div>';
+      return;
+    }
+    gallery.innerHTML = '';
+    currentFiles.sort((a,b) => a.name.localeCompare(b.name)).forEach(file => {
+      const url = imageUrl(file.name);
+      const card = document.createElement('article');
+      card.className = 'card';
+      const preview = document.createElement('div');
+      preview.className = 'preview';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = file.name;
+      img.loading = 'lazy';
+      img.onerror = () => { img.alt = 'Gambar belum tersedia dari GitHub Pages'; img.style.display = 'none'; };
+      preview.appendChild(img);
+
+      const body = document.createElement('div');
+      body.className = 'card-body';
+      const name = document.createElement('div');
+      name.className = 'filename';
+      name.textContent = file.name;
+      const link = document.createElement('span');
+      link.className = 'url';
+      link.textContent = url;
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
+
+      const copy = document.createElement('button');
+      copy.textContent = 'Salin URL';
+      copy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          setStatus('URL disalin: ' + url, 'success');
+        } catch {
+          window.prompt('Salin URL gambar ini:', url);
+        }
+      });
+
+      const open = document.createElement('button');
+      open.textContent = 'Buka';
+      open.addEventListener('click', () => window.open(url, '_blank', 'noopener,noreferrer'));
+
+      const del = document.createElement('button');
+      del.textContent = 'Hapus';
+      del.className = 'danger';
+      del.addEventListener('click', () => deleteImage(file));
+
+      actions.append(copy, open, del);
+      body.append(name, link, actions);
+      card.append(preview, body);
+      gallery.appendChild(card);
+    });
+  }
+
+  function bytesToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  async function uploadImage() {
+    if (!selectedFile) return;
+    try {
+      const c = config();
+      if (!c.token) throw new Error('Token dibutuhkan untuk upload. Isi token pada bagian pengaturan.');
+      if (!selectedFile.type.startsWith('image/')) throw new Error('File yang dipilih bukan gambar.');
+      if (selectedFile.size > 5 * 1024 * 1024) throw new Error('Ukuran gambar melebihi 5 MB. Kompres gambar terlebih dahulu.');
+      const safeName = selectedFile.name.replace(/[^\w.\-() ]/g, '_').trim();
+      if (!safeName || safeName.startsWith('.')) throw new Error('Nama file tidak valid.');
+      const existing = currentFiles.find(f => f.name.toLowerCase() === safeName.toLowerCase());
+      let sha;
+      if (existing) {
+        const replace = confirm(`File "${safeName}" sudah ada. Ganti file tersebut?`);
+        if (!replace) return;
+        sha = existing.sha;
+      }
+      $('uploadBtn').disabled = true;
+      setStatus('Mengunggah gambar ke repository…');
+      const content = bytesToBase64(await selectedFile.arrayBuffer());
+      const body = {
+        message: `${sha ? 'Update' : 'Add'} image: ${safeName}`,
+        content,
+        branch: c.branch
+      };
+      if (sha) body.sha = sha;
+      await githubRequest(apiUrl('images/' + safeName), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      selectedFile = null;
+      $('fileInput').value = '';
+      $('selectedFile').textContent = 'Belum ada file dipilih.';
+      setStatus('Upload berhasil. GitHub Pages mungkin memerlukan sedikit waktu untuk menerbitkan perubahan.', 'success');
+      await loadImages();
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      $('uploadBtn').disabled = !selectedFile;
+    }
+  }
+
+  async function deleteImage(file) {
+    if (!confirm(`Yakin ingin menghapus "${file.name}" dari repository? Tindakan ini membuat commit baru.`)) return;
+    try {
+      const c = config();
+      if (!c.token) throw new Error('Token dibutuhkan untuk menghapus gambar.');
+      setStatus(`Menghapus ${file.name}…`);
+      await githubRequest(apiUrl('images/' + file.name), {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Delete image: ${file.name}`,
+          sha: file.sha,
+          branch: c.branch
+        })
+      });
+      setStatus(`"${file.name}" berhasil dihapus. Perubahan publikasi dapat memerlukan sedikit waktu.`, 'success');
+      await loadImages();
+    } catch (error) {
+      setStatus(error.message, 'error');
+    }
+  }
+
+  $('fileInput').addEventListener('change', (event) => {
+    selectedFile = event.target.files?.[0] || null;
+    $('selectedFile').textContent = selectedFile
+      ? `${selectedFile.name} · ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
+      : 'Belum ada file dipilih.';
+    $('uploadBtn').disabled = !selectedFile;
+    setStatus('');
+  });
+  $('uploadBtn').addEventListener('click', uploadImage);
+  $('loadBtn').addEventListener('click', loadImages);
+  $('refreshBtn').addEventListener('click', loadImages);
+  $('toggleToken').addEventListener('click', () => {
+    const input = $('token');
+    input.type = input.type === 'password' ? 'text' : 'password';
+    $('toggleToken').textContent = input.type === 'password' ? 'Tampilkan' : 'Sembunyikan';
+  });
+</script>
+</body>
+</html>
